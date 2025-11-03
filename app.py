@@ -109,8 +109,12 @@ def admin_required(f):
 @app.route("/")
 def index():
     db = get_db()
-    pkgs = db.execute("SELECT * FROM packages ORDER BY created_at DESC LIMIT 3").fetchall()
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM packages ORDER BY created_at DESC LIMIT 3")
+    pkgs = cursor.fetchall()
+    cursor.close()
     return render_template("index.html", packages=pkgs)
+
 
 @app.route("/about")
 def about():
