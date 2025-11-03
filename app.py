@@ -22,7 +22,7 @@ except Exception as e:
 app = Flask(__name__, instance_relative_config=True)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
 os.makedirs(app.instance_path, exist_ok=True)
-DB_PATH = os.path.join(app.instance_path, "tourism.db")
+#DB_PATH = os.path.join(app.instance_path, "tourism.db")
 
 # ----------------------- DB helpers ----------------------------
 
@@ -105,13 +105,22 @@ def admin_required(f):
             return redirect(url_for("admin_login"))
         return f(*args, **kwargs)
     return _wrap
+def get_db_cursor():
+    db = get_db()
+    return db.cursor()
+
 
 # ----------------------- Public routes --------------------------
+
 @app.route("/")
 def index():
-    db = get_db()
-    pkgs = db.execute("SELECT * FROM packages ORDER BY created_at DESC LIMIT 3").fetchall()
+    cur = get_db_cursor()
+    cur.execute("SELECT * FROM packages ORDER BY created_at DESC LIMIT 3")
+    pkgs = cur.fetchall()
+    cur.close()
     return render_template("index.html", packages=pkgs)
+
+
 
 @app.route("/about")
 def about():
