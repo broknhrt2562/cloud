@@ -7,6 +7,15 @@ from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, g, flash, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 from init_db import get_connection
+# ---------------------- Initialize Database ----------------------
+from init_db import init_db  # ✅ make sure init_db.py is in the same folder
+
+try:
+    print("🔄 Initializing database...")
+    init_db()
+except Exception as e:
+    print(f"⚠️ Database init skipped or failed: {e}")
+
 
 # -------------------------- App setup --------------------------
 app = Flask(__name__, instance_relative_config=True)
@@ -15,6 +24,9 @@ os.makedirs(app.instance_path, exist_ok=True)
 DB_PATH = os.path.join(app.instance_path, "tourism.db")
 
 # ----------------------- DB helpers ----------------------------
+@app.route("/ping")
+def ping():
+    return "✅ Flask app running & DB initialized"
 
 def get_db():
     if "db" not in g:
@@ -97,12 +109,8 @@ def admin_required(f):
 @app.route("/")
 def index():
     db = get_db()
-    cur = db.cursor()
-    cur.execute("SELECT * FROM packages ORDER BY created_at DESC LIMIT 3")
-    pkgs = cur.fetchall()
-    cur.close()
+    pkgs = db.execute("SELECT * FROM packages ORDER BY created_at DESC LIMIT 3").fetchall()
     return render_template("index.html", packages=pkgs)
-
 
 @app.route("/about")
 def about():
@@ -755,5 +763,7 @@ def not_found(e):
 
 # ---------------------- Run locally -----------------------------
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
+
 
