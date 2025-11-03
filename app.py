@@ -2,29 +2,17 @@
 
 import os, sqlite3
 import psycopg2
-from psycopg2.extras import DictCursor
-
 from urllib.parse import urlparse
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, g, flash, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 from init_db import get_connection
 
-# ---------------------- Initialize Database ----------------------
-from init_db import init_db  # ✅ make sure init_db.py is in the same folder
-
-try:
-    print("🔄 Initializing database...")
-    init_db()
-except Exception as e:
-    print(f"⚠️ Database init skipped or failed: {e}")
-
-
 # -------------------------- App setup --------------------------
 app = Flask(__name__, instance_relative_config=True)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
 os.makedirs(app.instance_path, exist_ok=True)
-#DB_PATH = os.path.join(app.instance_path, "tourism.db")
+DB_PATH = os.path.join(app.instance_path, "tourism.db")
 
 # ----------------------- DB helpers ----------------------------
 
@@ -39,8 +27,7 @@ def get_db():
                 user=url.username,
                 password=url.password,
                 host=url.hostname,
-                port=url.port,
-                cursor_factory=DictCursor
+                port=url.port
             )
             g.db.autocommit = True
         else:
@@ -60,9 +47,6 @@ def close_db(exception):
         except Exception as e:
             print("DB close error:", e)
 
-@app.route("/ping")
-def ping():
-    return "✅ Flask app running & DB initialized"
 
 
 # ---------------------- Helper: log cloud actions --------------
@@ -108,22 +92,13 @@ def admin_required(f):
             return redirect(url_for("admin_login"))
         return f(*args, **kwargs)
     return _wrap
-def get_db_cursor():
-    db = get_db()
-    return db.cursor()
-
 
 # ----------------------- Public routes --------------------------
-
 @app.route("/")
 def index():
-    cur = get_db_cursor()
-    cur.execute("SELECT * FROM packages ORDER BY created_at DESC LIMIT 3")
-    pkgs = cur.fetchall()
-    cur.close()
+    db = get_db()
+    pkgs = db.execute("SELECT * FROM packages ORDER BY created_at DESC LIMIT 3").fetchall()
     return render_template("index.html", packages=pkgs)
-
-
 
 @app.route("/about")
 def about():
@@ -308,7 +283,7 @@ def register():
                 return redirect(url_for("login"))
             except sqlite3.IntegrityError:
                 flash("Email already registered.", "error")
-    return render_template("user_register.html")
+    return render_template("register.html")
 
 @app.route("/login", methods=["GET","POST"])
 def login():
@@ -327,7 +302,7 @@ def login():
             log_action(user["id"], "user", "User logged in")
             return redirect(url_for("main_dashboard"))
         flash("Incorrect password.", "error")
-    return render_template("user_login.html")
+    return render_template("login.html")
 
 
 @app.route("/check_email")
@@ -776,5 +751,5 @@ def not_found(e):
 
 # ---------------------- Run locally -----------------------------
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(debug=True)
+
