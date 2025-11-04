@@ -11,6 +11,9 @@ from flask import (
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
+from dotenv import load_dotenv
+load_dotenv()
+
 
 # Prefer init_db helpers if present
 try:
@@ -32,8 +35,10 @@ app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
 os.makedirs(app.instance_path, exist_ok=True)
 
 # Detect environment (same names as init_db)
+
 DATABASE_URL = os.environ.get("DATABASE_PUBLIC_URL") or os.environ.get("DATABASE_URL")
 IS_POSTGRES = bool(DATABASE_URL) if INIT_IS_POSTGRES is None else INIT_IS_POSTGRES
+print("Connecting to:", DATABASE_URL)
 
 # Local DB path
 DB_PATH = os.path.join(app.instance_path, "tourism.db")
@@ -87,6 +92,9 @@ def get_db():
     if "db" not in g:
         g.db = get_connection()
     return g.db
+
+
+
 
 
 @app.teardown_appcontext
